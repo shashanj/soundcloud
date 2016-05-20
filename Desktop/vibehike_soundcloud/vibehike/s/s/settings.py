@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+UPLOAD_FILE_TYPE = 'audio'
+UPLOAD_FILE_MAX_SIZE = 5242880
 
 # Application definition
 

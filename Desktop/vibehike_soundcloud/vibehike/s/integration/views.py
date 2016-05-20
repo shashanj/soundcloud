@@ -7,7 +7,7 @@ from soundcloud.client import Client
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import os
-from s.settings import BASE_DIR
+from s.settings import BASE_DIR,UPLOAD_FILE_TYPE,UPLOAD_FILE_MAX_SIZE
 from django.core.urlresolvers import reverse
 # Create your views here.
 
@@ -26,8 +26,18 @@ def upload(request):
 		music = request.FILES['file']
 		path = default_storage.save('%s' %music, ContentFile(music.read()))
 		music.close()
-		print path,os.path.join(BASE_DIR,path)
-		#### add uloaded file #####
+
+		### check size  and format ####
+		file_type = music.content_type.split('/')[0]
+		if file_type != UPLOAD_FILE_TYPE :
+			return render_to_response('upload.html',{'error': 'file format is invalid'},RequestContext(request))
+
+		if music._size > UPLOAD_FILE_MAX_SIZE :
+			return render_to_response('upload.html',{'error': 'file size is greater than 5MB'},RequestContext(request))
+
+
+
+		### add uploaded file #####
 		track = user.post('/tracks', track={
 		    'title': 'This is a test track',
 		    'asset_data': open('%s'%os.path.join(BASE_DIR,path),'rb'),
@@ -35,12 +45,14 @@ def upload(request):
 		os.remove(os.path.join(BASE_DIR,path))
 		print track.id, track.permalink_url
 
+		### get song to play in next fuction #####
 		tracktoplay = client.get('/resolve', url=request.POST.get('track'))
 		embed_info = client.get('/oembed', url=request.POST.get('track'))
 
 		print embed_info.html
 		print tracktoplay.id
 
+		##### get user to follow ########
 		usr = []
 		follow = []
 		if request.POST.get('user') is not None :
@@ -74,6 +86,8 @@ def follow(request,access_token):
 			print request.POST.get('id')
 			print access_token
 			user = Client(access_token = access_token)
+
+			#### follow the given user ####
 			user.put('/me/followings/%d' %int(request.POST.get('id')))
 
 			return HttpResponseRedirect(link)
